@@ -6,7 +6,10 @@ import Register from '../../pages/Auth/Register';
 import Home from '../../pages/Home/Home';
 import Catalog from '../../pages/Catalog/Catalog';
 import MovieDetail from '../../pages/Movie/MovieDetail';
+import SeriesDetail from '../../pages/Series/SeriesDetail';
 import Profile from '../../pages/Profile/Profile';
+import Recommendations from '../../pages/Recommendations/Recommendations';
+import AdminPanel from '../../pages/Admin/AdminPanel';
 import LoadingSpinner from '../../shared/ui/LoadingSpinner';
 
 // Компонент для защищенных маршрутов
@@ -18,6 +21,20 @@ const ProtectedRoute = ({ children }) => {
   }
   
   return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Компонент для админских маршрутов
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, loading, user } = useAuthViewModel();
+  
+  if (loading) {
+    return <LoadingSpinner message="Проверка прав доступа..." />;
+  }
+  
+  // Проверяем что пользователь авторизован и является админом
+  const isAdmin = user?.is_staff || user?.is_superuser;
+  
+  return isAuthenticated && isAdmin ? children : <Navigate to="/" replace />;
 };
 
 // Компонент для публичных маршрутов (только для неавторизованных)
@@ -93,11 +110,39 @@ const AppRouter = () => {
         />
         
         <Route 
+          path="/series/:id" 
+          element={
+            <ProtectedRoute>
+              <SeriesDetail user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
           path="/profile" 
           element={
             <ProtectedRoute>
               <Profile user={user} onLogout={logout} />
             </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/recommendations" 
+          element={
+            <ProtectedRoute>
+              <Recommendations user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Админские маршруты */}
+        <Route 
+          path="/admin" 
+          element={
+            <AdminRoute>
+              <AdminPanel user={user} onLogout={logout} />
+            </AdminRoute>
           } 
         />
         

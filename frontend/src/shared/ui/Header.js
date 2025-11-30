@@ -10,6 +10,7 @@ import {
   MenuItem,
   Avatar,
   Badge,
+  Chip,
 } from '@mui/material';
 import {
   Movie as MovieIcon,
@@ -19,12 +20,16 @@ import {
   Theaters,
   Person,
   Menu as MenuIcon,
+  Psychology,
+  AdminPanelSettings,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Header = ({ user, onLogout }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
+
+  const isAdmin = user?.is_staff || user?.is_superuser;
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -43,6 +48,11 @@ const Header = ({ user, onLogout }) => {
   const handleProfile = () => {
     handleClose();
     navigate('/profile');
+  };
+
+  const handleAdmin = () => {
+    handleClose();
+    navigate('/admin');
   };
 
   return (
@@ -84,6 +94,26 @@ const Header = ({ user, onLogout }) => {
           >
             Каталог
           </Button>
+          <Button 
+            color="inherit" 
+            component={Link}
+            to="/recommendations"
+            startIcon={<Psychology />}
+          >
+            Рекомендации
+          </Button>
+          
+          {/* Админ-панель для админов */}
+          {isAdmin && (
+            <Button 
+              color="inherit" 
+              component={Link}
+              to="/admin"
+              startIcon={<AdminPanelSettings />}
+            >
+              Админ-панель
+            </Button>
+          )}
         </Box>
 
         {/* Правая часть */}
@@ -92,9 +122,20 @@ const Header = ({ user, onLogout }) => {
             <>
               {/* Уведомления и профиль */}
               <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
-                <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                  Привет, {user.username}!
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {isAdmin && (
+                    <Chip 
+                      icon={<AdminPanelSettings />} 
+                      label="Админ" 
+                      size="small" 
+                      color="secondary" 
+                      variant="outlined"
+                    />
+                  )}
+                  <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
+                    {user.username}
+                  </Typography>
+                </Box>
                 
                 <IconButton 
                   color="inherit" 
@@ -153,6 +194,16 @@ const Header = ({ user, onLogout }) => {
                     <Theaters sx={{ mr: 1 }} />
                     Каталог
                   </MenuItem>
+                  <MenuItem component={Link} to="/recommendations" onClick={handleClose}>
+                    <Psychology sx={{ mr: 1 }} />
+                    Рекомендации
+                  </MenuItem>
+                  {isAdmin && (
+                    <MenuItem onClick={handleAdmin}>
+                      <AdminPanelSettings sx={{ mr: 1 }} />
+                      Админ-панель
+                    </MenuItem>
+                  )}
                   <MenuItem onClick={handleLogout}>
                     <ExitToApp sx={{ mr: 1 }} />
                     Выйти
