@@ -33,6 +33,8 @@ import LoadingSpinner from '../../shared/ui/LoadingSpinner';
 import SearchBar from '../../features/search/SearchBar';
 import AdvancedFilters from '../../shared/ui/forms/AdvancedFilters';
 import EmptyState from '../../shared/ui/feedback/EmptyState';
+import MovieForm from '../../features/admin-system/MovieForm';
+import SeriesForm from '../../features/admin-system/SeriesForm';
 
 const Catalog = ({ user, onLogout }) => {
   const {
@@ -42,7 +44,8 @@ const Catalog = ({ user, onLogout }) => {
     loading,
     error,
     filters,
-    pagination,
+    moviesPagination,
+    seriesPagination,
     loadMovies,
     loadSeries,
     handleFilterChange,
@@ -334,11 +337,33 @@ const Catalog = ({ user, onLogout }) => {
   const itemType = activeContentType === 'movies' ? 'фильмов' : 'сериалов';
   const isAdmin = user?.is_staff;
 
+  const [addFormOpen, setAddFormOpen] = useState(false);
+  const [addFormType, setAddFormType] = useState('movie');
+
+  const handleAddClick = () => {
+    setAddFormType(activeContentType === 'movies' ? 'movie' : 'series');
+    setAddFormOpen(true);
+  };
+
+  const handleFormClose = () => {
+    setAddFormOpen(false);
+  };
+
+  const handleFormSaved = () => {
+    setAddFormOpen(false);
+    // Обновляем данные каталога
+    if (activeContentType === 'movies') {
+      loadMovies(1, filters);
+    } else {
+      loadSeries(1, filters);
+    }
+  };
+
   const speedDialActions = [
-    ...(isAdmin ? [{
+    ...(user ? [{
       icon: <Add />, 
-      name: 'Добавить', 
-      action: () => window.location.href = '/admin'
+      name: activeContentType === 'movies' ? 'Добавить фильм' : 'Добавить сериал', 
+      action: handleAddClick
     }] : []),
     {
       icon: <FilterList />, 
@@ -374,12 +399,12 @@ const Catalog = ({ user, onLogout }) => {
             >
               <Tab 
                 icon={<Theaters />} 
-                label={`Фильмы (${activeContentType === 'movies' ? pagination.count : '...'})`}
+                label={`Фильмы (${activeContentType === 'movies' ? moviesPagination.count : moviesPagination.count})`}
                 value="movies"
               />
               <Tab 
                 icon={<Tv />} 
-                label={`Сериалы (${activeContentType === 'series' ? pagination.count : '...'})`}
+                label={`Сериалы (${activeContentType === 'series' ? seriesPagination.count : seriesPagination.count})`}
                 value="series"
               />
             </Tabs>
@@ -388,10 +413,21 @@ const Catalog = ({ user, onLogout }) => {
           {/* Статистика и поиск */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
             <Typography variant="h6" color="text.secondary">
-              📊 Найдено {itemType}: <strong>{pagination.count || 0}</strong>
+              📊 Найдено {itemType}: <strong>{activeContentType === 'movies' ? moviesPagination.count : seriesPagination.count}</strong>
             </Typography>
             
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              {user && (
+                <Button
+                  startIcon={<Add />}
+                  onClick={handleAddClick}
+                  variant="contained"
+                  color="primary"
+                >
+                  {activeContentType === 'movies' ? 'Добавить фильм' : 'Добавить сериал'}
+                </Button>
+              )}
+              
               <Button
                 startIcon={<FilterList />}
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -417,8 +453,14 @@ const Catalog = ({ user, onLogout }) => {
           {/* Поиск */}
           <Box sx={{ mb: 3 }}>
             <SearchBar 
-              onMovieSelect={() => {}}
+              onMovieSelect={(movie) => {
+                window.location.href = `/movie/${movie.id}`;
+              }}
+              onSeriesSelect={(series) => {
+                window.location.href = `/series/${series.id}`;
+              }}
               placeholder={`🔍 Поиск ${activeContentType === 'movies' ? 'фильмов' : 'сериалов'}...`}
+              searchType={activeContentType === 'movies' ? 'movies' : 'series'}
             />
           </Box>
 
@@ -471,11 +513,11 @@ const Catalog = ({ user, onLogout }) => {
             </Grid>
 
             {/* Пагинация */}
-            {pagination.count > 20 && (
+            {(activeContentType === 'movies' ? moviesPagination.count : seriesPagination.count) > 20 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
                 <Pagination
-                  count={Math.ceil(pagination.count / 20)}
-                  page={pagination.page}
+                  count={Math.ceil((activeContentType === 'movies' ? moviesPagination.count : seriesPagination.count) / 20)}
+                  page={activeContentType === 'movies' ? moviesPagination.page : seriesPagination.page}
                   onChange={(e, page) => handleLocalPageChange(page)}
                   color="primary"
                   size="large"
@@ -508,6 +550,24 @@ const Catalog = ({ user, onLogout }) => {
               />
             ))}
           </SpeedDial>
+        )}
+
+        {/* Формы добавления */}
+        {user && (
+          <>
+            <MovieForm
+              open={addFormOpen && addFormType === 'movie'}
+              onClose={handleFormClose}
+              movie={null}
+              onSave={handleFormSaved}
+            />
+            <SeriesForm
+              open={addFormOpen && addFormType === 'series'}
+              onClose={handleFormClose}
+              series={null}
+              onSave={handleFormSaved}
+            />
+          </>
         )}
       </Container>
     </>

@@ -12,7 +12,7 @@ import {
 import { Send, Clear } from '@mui/icons-material';
 import { reviewService } from '../../shared/api/reviewService';
 
-const ReviewForm = ({ movieId, onReviewSubmitted }) => {
+const ReviewForm = ({ movieId, seriesId, onReviewSubmitted }) => {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -27,10 +27,11 @@ const ReviewForm = ({ movieId, onReviewSubmitted }) => {
 
     setLoading(true);
     try {
-      const newReview = await reviewService.createReview({
-        movie: movieId,
-        text: text.trim()
-      });
+      const reviewData = { text: text.trim() };
+      if (movieId) reviewData.movie = movieId;
+      if (seriesId) reviewData.series = seriesId;
+      
+      const newReview = await reviewService.createReview(reviewData);
       
       setText('');
       setSnackbar({ open: true, message: 'Отзыв опубликован!', severity: 'success' });

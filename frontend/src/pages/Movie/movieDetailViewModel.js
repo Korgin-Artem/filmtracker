@@ -29,6 +29,26 @@ export const useMovieDetailViewModel = (movieId) => {
       const reviewsData = await reviewService.getReviews(movieId);
       setReviews(reviewsData.results || []);
 
+      // Загружаем текущий рейтинг пользователя
+      try {
+        const userRating = await reviewService.getUserRating(movieId);
+        if (userRating) {
+          setUserRating(userRating.rating);
+        }
+      } catch (error) {
+        console.error('Error loading user rating:', error);
+      }
+
+      // Загружаем текущий статус просмотра
+      try {
+        const userStatus = await reviewService.getUserWatchStatus(movieId);
+        if (userStatus) {
+          setUserWatchStatus(userStatus.status);
+        }
+      } catch (error) {
+        console.error('Error loading user watch status:', error);
+      }
+
     } catch (error) {
       console.error('Error loading movie:', error);
       setError('Не удалось загрузить информацию о фильме.');

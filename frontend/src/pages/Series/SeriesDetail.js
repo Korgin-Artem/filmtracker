@@ -131,13 +131,13 @@ const SeriesDetail = ({ user, onLogout }) => {
               {user && (
                 <Box sx={{ mt: 3 }}>
                   <RatingWidget 
-                    movieId={series.id} 
+                    seriesId={series.id}
                     onRatingChange={handleRatingChange}
                   />
                   
                   <Box sx={{ mt: 4 }}>
                     <WatchStatusButton 
-                      movieId={series.id}
+                      seriesId={series.id}
                       onStatusChange={handleStatusChange}
                     />
                   </Box>
@@ -215,7 +215,7 @@ const SeriesDetail = ({ user, onLogout }) => {
             {/* Форма отзыва */}
             {user && (
               <ReviewForm 
-                movieId={series.id}
+                seriesId={series.id}
                 onReviewSubmitted={handleReviewSubmitted}
               />
             )}

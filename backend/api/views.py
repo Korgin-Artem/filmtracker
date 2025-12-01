@@ -8,6 +8,7 @@ from users.models import User
 from users.serializers import UserSerializer, UserRegistrationSerializer
 from movies.models import Movie, Series, Genre, Person
 from movies.serializers import MovieSerializer, SeriesSerializer, GenreSerializer, PersonSerializer
+from django.utils.text import slugify
 from reviews.models import Review, Rating, WatchStatus
 from reviews.serializers import ReviewSerializer, RatingSerializer, WatchStatusSerializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -97,6 +98,8 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['movie', 'series', 'user']
 
     def perform_create(self, serializer):
         # Автоматически привязываем отзыв к текущему пользователю
@@ -113,6 +116,8 @@ class RatingListCreateView(generics.ListCreateAPIView):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['movie', 'series', 'user']
 
     def perform_create(self, serializer):
         # Автоматически привязываем оценку к текущему пользователю
@@ -124,10 +129,39 @@ class WatchStatusListCreateView(generics.ListCreateAPIView):
     queryset = WatchStatus.objects.all()
     serializer_class = WatchStatusSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['movie', 'series', 'user']
 
     def perform_create(self, serializer):
-        # Автоматически привязываем статус к текущему пользователю
-        serializer.save(user=self.request.user)
+        user = self.request.user
+        movie = serializer.validated_data.get('movie')
+        series = serializer.validated_data.get('series')
+        
+        # Удаляем старый статус для этого фильма/сериала, если он существует
+        # Это гарантирует, что у пользователя будет только один статус для каждого фильма/сериала
+        if movie:
+            old_statuses = WatchStatus.objects.filter(user=user, movie=movie)
+            if old_statuses.exists():
+                old_statuses.delete()
+        elif series:
+            old_statuses = WatchStatus.objects.filter(user=user, series=series)
+            if old_statuses.exists():
+                old_statuses.delete()
+        
+        # Создаем новый статус
+        serializer.save(user=user)
+
+class WatchStatusDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = WatchStatus.objects.all()
+    serializer_class = WatchStatusSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def perform_destroy(self, instance):
+        # Проверяем, что пользователь может удалить только свой статус
+        if instance.user != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Вы можете удалить только свой статус")
+        instance.delete()
 
 # ===== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ =====
 
@@ -227,3 +261,23 @@ class RecommendationsView(generics.ListAPIView):
             return popular_movies
         
         return recommended_movies
+
+# ===== ЖАНРЫ =====
+
+class GenreListCreateView(generics.ListCreateAPIView):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def perform_create(self, serializer):
+        # Автоматически создаем slug из названия
+        name = serializer.validated_data.get('name')
+        if name:
+            slug = slugify(name)
+            # Проверяем уникальность slug
+            counter = 1
+            original_slug = slug
+            while Genre.objects.filter(slug=slug).exists():
+                slug = f"{original_slug}-{counter}"
+                counter += 1
+            serializer.save(slug=slug)

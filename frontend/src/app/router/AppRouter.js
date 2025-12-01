@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useAuthViewModel } from '../../features/auth/authViewModel';
 import Login from '../../pages/Auth/Login';
 import Register from '../../pages/Auth/Register';
@@ -10,9 +10,10 @@ import SeriesDetail from '../../pages/Series/SeriesDetail';
 import Profile from '../../pages/Profile/Profile';
 import Recommendations from '../../pages/Recommendations/Recommendations';
 import AdminPanel from '../../pages/Admin/AdminPanel';
+import WatchList from '../../pages/WatchList/WatchList';
 import LoadingSpinner from '../../shared/ui/LoadingSpinner';
 
-// Компонент для защищенных маршрутов
+// Компонент для защищенных маршрутов (требует авторизации)
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuthViewModel();
   
@@ -20,7 +21,15 @@ const ProtectedRoute = ({ children }) => {
     return <LoadingSpinner message="Проверка авторизации..." />;
   }
   
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  // Проверяем также через localStorage для более надежной проверки
+  const hasToken = !!localStorage.getItem('access_token');
+  
+  return (isAuthenticated || hasToken) ? children : <Navigate to="/login" replace />;
+};
+
+// Компонент для публичных маршрутов (доступны всем, включая гостей)
+const PublicRoute = ({ children }) => {
+  return children;
 };
 
 // Компонент для админских маршрутов
@@ -37,87 +46,123 @@ const AdminRoute = ({ children }) => {
   return isAuthenticated && isAdmin ? children : <Navigate to="/" replace />;
 };
 
-// Компонент для публичных маршрутов (только для неавторизованных)
-const PublicRoute = ({ children }) => {
+// Компонент для маршрутов только для неавторизованных (логин/регистрация)
+const AuthOnlyRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuthViewModel();
   
   if (loading) {
     return <LoadingSpinner message="Проверка авторизации..." />;
   }
   
-  return !isAuthenticated ? children : <Navigate to="/" replace />;
+  // Проверяем также через localStorage для более надежной проверки
+  const hasToken = !!localStorage.getItem('access_token');
+  
+  return !isAuthenticated && !hasToken ? children : <Navigate to="/" replace />;
+};
+
+// Компонент-обертка для Login с навигацией
+const LoginWithNavigation = () => {
+  const navigate = useNavigate();
+  const { refreshUser } = useAuthViewModel();
+
+  const handleLoginSuccess = (userData) => {
+    console.log('User logged in:', userData);
+    // Обновляем состояние пользователя
+    if (refreshUser) {
+      refreshUser();
+    }
+    // Небольшая задержка для обновления состояния, затем перенаправление
+    setTimeout(() => {
+      navigate('/', { replace: true });
+    }, 100);
+  };
+
+  return <Login onLoginSuccess={handleLoginSuccess} />;
+};
+
+// Компонент-обертка для Register с навигацией
+const RegisterWithNavigation = () => {
+  const navigate = useNavigate();
+  const { refreshUser } = useAuthViewModel();
+
+  const handleRegisterSuccess = (userData) => {
+    console.log('User registered:', userData);
+    // Обновляем состояние пользователя
+    if (refreshUser) {
+      refreshUser();
+    }
+    // Небольшая задержка для обновления состояния, затем перенаправление
+    setTimeout(() => {
+      navigate('/', { replace: true });
+    }, 100);
+  };
+
+  return <Register onRegisterSuccess={handleRegisterSuccess} />;
 };
 
 const AppRouter = () => {
   const { user, logout } = useAuthViewModel();
 
-  const handleLoginSuccess = (userData) => {
-    console.log('User logged in:', userData);
-  };
-
-  const handleRegisterSuccess = (userData) => {
-    console.log('User registered:', userData);
-  };
-
   return (
     <Router>
       <Routes>
-        {/* Публичные маршруты */}
+        {/* Маршруты только для неавторизованных */}
         <Route 
           path="/login" 
           element={
-            <PublicRoute>
-              <Login onLoginSuccess={handleLoginSuccess} />
-            </PublicRoute>
+            <AuthOnlyRoute>
+              <LoginWithNavigation />
+            </AuthOnlyRoute>
           } 
         />
         
         <Route 
           path="/register" 
           element={
-            <PublicRoute>
-              <Register onRegisterSuccess={handleRegisterSuccess} />
-            </PublicRoute>
+            <AuthOnlyRoute>
+              <RegisterWithNavigation />
+            </AuthOnlyRoute>
           } 
         />
         
-        {/* Защищенные маршруты */}
+        {/* Публичные маршруты (доступны всем) */}
         <Route 
           path="/" 
           element={
-            <ProtectedRoute>
+            <PublicRoute>
               <Home user={user} onLogout={logout} />
-            </ProtectedRoute>
+            </PublicRoute>
           } 
         />
         
         <Route 
           path="/catalog" 
           element={
-            <ProtectedRoute>
+            <PublicRoute>
               <Catalog user={user} onLogout={logout} />
-            </ProtectedRoute>
+            </PublicRoute>
           } 
         />
         
         <Route 
           path="/movie/:id" 
           element={
-            <ProtectedRoute>
+            <PublicRoute>
               <MovieDetail user={user} onLogout={logout} />
-            </ProtectedRoute>
+            </PublicRoute>
           } 
         />
         
         <Route 
           path="/series/:id" 
           element={
-            <ProtectedRoute>
+            <PublicRoute>
               <SeriesDetail user={user} onLogout={logout} />
-            </ProtectedRoute>
+            </PublicRoute>
           } 
         />
         
+        {/* Защищенные маршруты (только для авторизованных) */}
         <Route 
           path="/profile" 
           element={
@@ -132,6 +177,15 @@ const AppRouter = () => {
           element={
             <ProtectedRoute>
               <Recommendations user={user} onLogout={logout} />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/watchlist" 
+          element={
+            <ProtectedRoute>
+              <WatchList user={user} onLogout={logout} />
             </ProtectedRoute>
           } 
         />

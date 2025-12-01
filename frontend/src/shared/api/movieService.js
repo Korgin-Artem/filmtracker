@@ -34,10 +34,38 @@ export const movieService = {
   },
 
   /**
-   * Создать новый фильм (для админа)
+   * Создать новый фильм
    */
   async createMovie(movieData) {
-    const response = await apiClient.post('/movies/', movieData);
+    // Преобразуем genres в genres_ids для API
+    const data = { ...movieData };
+    if (data.genres) {
+      data.genres_ids = data.genres;
+      delete data.genres;
+    }
+    const response = await apiClient.post('/movies/', data);
+    return response.data;
+  },
+
+  /**
+   * Обновить фильм
+   */
+  async updateMovie(movieId, movieData) {
+    // Преобразуем genres в genres_ids для API
+    const data = { ...movieData };
+    if (data.genres) {
+      data.genres_ids = data.genres;
+      delete data.genres;
+    }
+    const response = await apiClient.put(`/movies/${movieId}/`, data);
+    return response.data;
+  },
+
+  /**
+   * Удалить фильм
+   */
+  async deleteMovie(movieId) {
+    const response = await apiClient.delete(`/movies/${movieId}/`);
     return response.data;
   },
 
@@ -48,6 +76,22 @@ export const movieService = {
     const response = await apiClient.get('/movies/', {
       params: { search: query }
     });
+    return response.data;
+  },
+
+  /**
+   * Получить все жанры
+   */
+  async getGenres() {
+    const response = await apiClient.get('/genres/');
+    return response.data;
+  },
+
+  /**
+   * Создать новый жанр
+   */
+  async createGenre(genreData) {
+    const response = await apiClient.post('/genres/', genreData);
     return response.data;
   }
 };

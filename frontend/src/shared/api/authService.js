@@ -55,5 +55,13 @@ export const authService = {
   async getUserStats() {
     const response = await apiClient.get('/user/stats/');
     return response.data;
+  },
+
+  /**
+   * Получение профиля текущего пользователя
+   */
+  async getUserProfile() {
+    const response = await apiClient.get('/user/profile/');
+    return response.data;
   }
 };

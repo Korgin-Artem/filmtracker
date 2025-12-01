@@ -58,13 +58,32 @@ const Profile = ({ user, onLogout }) => {
     </Card>
   );
 
-  const ReviewCard = ({ review }) => (
+  const ReviewCard = ({ review }) => {
+    const contentLink = review.movie 
+      ? `/movie/${review.movie}` 
+      : review.series 
+        ? `/series/${review.series}` 
+        : null;
+    const contentTitle = review.movie_title || review.series_title || (review.movie ? `Фильм #${review.movie}` : review.series ? `Сериал #${review.series}` : 'Контент');
+
+    return (
     <Card sx={{ mb: 2 }}>
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Typography variant="h6" component={Link} to={`/movie/${review.movie}`} sx={{ textDecoration: 'none', color: 'primary.main' }}>
-            {review.movie_title || `Фильм #${review.movie}`}
+            {contentLink ? (
+              <Typography 
+                variant="h6" 
+                component={Link} 
+                to={contentLink} 
+                sx={{ textDecoration: 'none', color: 'primary.main', '&:hover': { textDecoration: 'underline' } }}
+              >
+                {contentTitle}
+              </Typography>
+            ) : (
+              <Typography variant="h6">
+                {contentTitle}
           </Typography>
+            )}
           <Typography variant="body2" color="text.secondary">
             {new Date(review.created_at).toLocaleDateString('ru-RU')}
           </Typography>
@@ -75,6 +94,7 @@ const Profile = ({ user, onLogout }) => {
       </CardContent>
     </Card>
   );
+  };
 
   return (
     <>

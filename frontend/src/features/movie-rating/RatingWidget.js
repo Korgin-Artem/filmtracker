@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -10,21 +10,37 @@ import {
 import { Star, StarBorder } from '@mui/icons-material';
 import { reviewService } from '../../shared/api/reviewService';
 
-const RatingWidget = ({ movieId, initialRating = 0, onRatingChange }) => {
+const RatingWidget = ({ movieId, seriesId, initialRating = 0, onRatingChange }) => {
   const [rating, setRating] = useState(initialRating);
   const [tempRating, setTempRating] = useState(0);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  useEffect(() => {
+    loadUserRating();
+  }, [movieId, seriesId]);
+
+  const loadUserRating = async () => {
+    try {
+      const userRating = await reviewService.getUserRating(movieId, seriesId);
+      if (userRating) {
+        setRating(userRating.rating);
+      }
+    } catch (error) {
+      console.error('Error loading user rating:', error);
+    }
+  };
 
   const handleRatingChange = async (event, newValue) => {
     if (!newValue) return;
 
     setLoading(true);
     try {
-      await reviewService.createRating({
-        movie: movieId,
-        rating: newValue
-      });
+      const ratingData = { rating: newValue };
+      if (movieId) ratingData.movie = movieId;
+      if (seriesId) ratingData.series = seriesId;
+      
+      await reviewService.createRating(ratingData);
       
       setRating(newValue);
       setSnackbar({ open: true, message: 'Оценка сохранена!', severity: 'success' });

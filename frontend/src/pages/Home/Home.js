@@ -195,21 +195,34 @@ const Home = ({ user, onLogout }) => {
             {/* Вкладка Обзор */}
             {activeTab === 0 && (
               <Box>
-                {/* Статистика */}
-                {userStats && (
+                {/* Статистика - только для авторизованных */}
+                {user && userStats && (
                   <Box sx={{ mb: 6 }}>
                     <StatsWidget stats={userStats} />
                   </Box>
                 )}
 
-                {/* Рекомендации */}
-                {recommendations.length > 0 && (
+                {/* Рекомендации - только для авторизованных */}
+                {user && recommendations.length > 0 && (
                   <MovieSection
                     title="Рекомендуем вам"
                     icon={<Theaters color="primary" />}
                     movies={recommendations}
                     emptyMessage="Пока нет рекомендаций. Оцените больше фильмов!"
                   />
+                )}
+
+                {/* Приветствие для гостей */}
+                {!user && (
+                  <Alert severity="info" sx={{ mb: 4 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Добро пожаловать в FilmTracker!
+                    </Typography>
+                    <Typography variant="body1" paragraph>
+                      Просматривайте каталог фильмов и сериалов без регистрации. 
+                      Для сохранения ваших списков и получения персональных рекомендаций войдите или зарегистрируйтесь.
+                    </Typography>
+                  </Alert>
                 )}
 
                 {/* Популярные фильмы */}
@@ -265,7 +278,11 @@ const Home = ({ user, onLogout }) => {
             {/* Вкладка Статистика */}
             {activeTab === 2 && (
               <Box>
-                {userStats ? (
+                {!user ? (
+                  <Alert severity="info">
+                    Для просмотра статистики необходимо войти в систему.
+                  </Alert>
+                ) : userStats ? (
                   <Grid container spacing={3}>
                     <Grid item xs={12}>
                       <StatsWidget stats={userStats} />

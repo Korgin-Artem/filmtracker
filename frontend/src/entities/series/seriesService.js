@@ -18,18 +18,30 @@ export const seriesService = {
   },
 
   /**
-   * Создать новый сериал (для админа)
+   * Создать новый сериал
    */
   async createSeries(seriesData) {
-    const response = await apiClient.post('/series/', seriesData);
+    // Преобразуем genres в genres_ids для API
+    const data = { ...seriesData };
+    if (data.genres) {
+      data.genres_ids = data.genres;
+      delete data.genres;
+    }
+    const response = await apiClient.post('/series/', data);
     return response.data;
   },
 
   /**
-   * Обновить сериал (для админа)
+   * Обновить сериал
    */
   async updateSeries(id, seriesData) {
-    const response = await apiClient.put(`/series/${id}/`, seriesData);
+    // Преобразуем genres в genres_ids для API
+    const data = { ...seriesData };
+    if (data.genres) {
+      data.genres_ids = data.genres;
+      delete data.genres;
+    }
+    const response = await apiClient.put(`/series/${id}/`, data);
     return response.data;
   },
 

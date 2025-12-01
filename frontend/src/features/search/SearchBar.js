@@ -9,11 +9,13 @@ import {
   ListItemText,
   Box,
   Typography,
+  Chip,
 } from '@mui/material';
-import { Search, Clear } from '@mui/icons-material';
+import { Search, Clear, Theaters, Tv } from '@mui/icons-material';
 import { movieService } from '../../shared/api/movieService';
+import { seriesService } from '../../entities/series/seriesService';
 
-const SearchBar = ({ onMovieSelect, placeholder = "Поиск фильмов..." }) => {
+const SearchBar = ({ onMovieSelect, onSeriesSelect, placeholder = "Поиск фильмов и сериалов...", searchType = 'all' }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,8 +30,31 @@ const SearchBar = ({ onMovieSelect, placeholder = "Поиск фильмов..."
 
     setLoading(true);
     try {
-      const data = await movieService.searchMovies(searchQuery);
-      setResults(data.results || []);
+      const allResults = [];
+      
+      // Поиск фильмов
+      if (searchType === 'all' || searchType === 'movies') {
+        try {
+          const moviesData = await movieService.searchMovies(searchQuery);
+          const movies = (moviesData.results || []).map(movie => ({ ...movie, type: 'movie' }));
+          allResults.push(...movies);
+        } catch (error) {
+          console.error('Movies search error:', error);
+        }
+      }
+      
+      // Поиск сериалов
+      if (searchType === 'all' || searchType === 'series') {
+        try {
+          const seriesData = await seriesService.searchSeries(searchQuery);
+          const series = (seriesData.results || []).map(series => ({ ...series, type: 'series' }));
+          allResults.push(...series);
+        } catch (error) {
+          console.error('Series search error:', error);
+        }
+      }
+      
+      setResults(allResults);
       setShowResults(true);
     } catch (error) {
       console.error('Search error:', error);
@@ -50,10 +75,14 @@ const SearchBar = ({ onMovieSelect, placeholder = "Поиск фильмов..."
     }, 300);
   };
 
-  const handleMovieSelect = (movie) => {
-    setQuery(movie.title);
+  const handleItemSelect = (item) => {
+    setQuery(item.title);
     setShowResults(false);
-    onMovieSelect(movie);
+    if (item.type === 'movie' && onMovieSelect) {
+      onMovieSelect(item);
+    } else if (item.type === 'series' && onSeriesSelect) {
+      onSeriesSelect(item);
+    }
   };
 
   const clearSearch = () => {
@@ -105,15 +134,25 @@ const SearchBar = ({ onMovieSelect, placeholder = "Поиск фильмов..."
             </Box>
           ) : results.length > 0 ? (
             <List dense>
-              {results.map((movie) => (
+              {results.map((item) => (
                 <ListItem
-                  key={movie.id}
+                  key={`${item.type}-${item.id}`}
                   button
-                  onClick={() => handleMovieSelect(movie)}
+                  onClick={() => handleItemSelect(item)}
                 >
                   <ListItemText
-                    primary={movie.title}
-                    secondary={`${movie.release_year} • ${movie.genres?.map(g => g.name).join(', ')}`}
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {item.type === 'movie' ? <Theaters fontSize="small" /> : <Tv fontSize="small" />}
+                        {item.title}
+                        <Chip 
+                          label={item.type === 'movie' ? 'Фильм' : 'Сериал'} 
+                          size="small" 
+                          sx={{ ml: 1, height: 20 }}
+                        />
+                      </Box>
+                    }
+                    secondary={`${item.release_year} • ${item.genres?.map(g => g.name).join(', ')}`}
                   />
                 </ListItem>
               ))}

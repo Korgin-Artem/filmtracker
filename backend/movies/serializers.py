@@ -13,6 +13,13 @@ class PersonSerializer(serializers.ModelSerializer):
 
 class MovieSerializer(serializers.ModelSerializer):
     genres = GenreSerializer(many=True, read_only=True)
+    genres_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Genre.objects.all(),
+        source='genres',
+        write_only=True,
+        required=False
+    )
     directors = PersonSerializer(many=True, read_only=True)
     actors = PersonSerializer(many=True, read_only=True)
     
@@ -22,6 +29,13 @@ class MovieSerializer(serializers.ModelSerializer):
 
 class SeriesSerializer(serializers.ModelSerializer):
     genres = GenreSerializer(many=True, read_only=True)
+    genres_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Genre.objects.all(),
+        source='genres',
+        write_only=True,
+        required=False
+    )
     
     class Meta:
         model = Series

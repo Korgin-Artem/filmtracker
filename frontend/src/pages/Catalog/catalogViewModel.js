@@ -15,7 +15,13 @@ export const useCatalogViewModel = () => {
     release_year_max: '',
     ordering: '-created_at'
   });
-  const [pagination, setPagination] = useState({
+  const [moviesPagination, setMoviesPagination] = useState({
+    count: 0,
+    next: null,
+    previous: null,
+    page: 1
+  });
+  const [seriesPagination, setSeriesPagination] = useState({
     count: 0,
     next: null,
     previous: null,
@@ -40,8 +46,8 @@ export const useCatalogViewModel = () => {
       const data = await movieService.getMovies(params);
       
       setMovies(data.results || []);
-      setPagination({
-        count: data.count,
+      setMoviesPagination({
+        count: data.count || 0,
         next: data.next,
         previous: data.previous,
         page
@@ -73,8 +79,8 @@ export const useCatalogViewModel = () => {
       const data = await seriesService.getSeries(params);
       
       setSeries(data.results || []);
-      setPagination({
-        count: data.count,
+      setSeriesPagination({
+        count: data.count || 0,
         next: data.next,
         previous: data.previous,
         page
@@ -171,9 +177,10 @@ export const useCatalogViewModel = () => {
     loading,
     error,
     filters,
-    pagination,
-    loadMovies: () => loadMovies(pagination.page),
-    loadSeries: () => loadSeries(pagination.page),
+    moviesPagination,
+    seriesPagination,
+    loadMovies: () => loadMovies(moviesPagination.page),
+    loadSeries: () => loadSeries(seriesPagination.page),
     handleFilterChange,
     handlePageChange,
     handleSearch,

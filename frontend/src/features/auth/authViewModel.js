@@ -22,6 +22,14 @@ export const useAuthViewModel = () => {
       setLoading(true);
       const response = await authService.login({ email, password });
       
+      // Проверяем, что ответ содержит необходимые данные
+      if (!response || !response.user || !response.access) {
+        return { 
+          success: false, 
+          error: 'Неверный формат ответа от сервера' 
+        };
+      }
+      
       // Сохраняем токены и данные пользователя
       authService.setTokens(response);
       localStorage.setItem('user', JSON.stringify(response.user));
@@ -29,9 +37,24 @@ export const useAuthViewModel = () => {
       
       return { success: true, user: response.user };
     } catch (error) {
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.error || 
-                          'Ошибка входа. Проверьте email и пароль.';
+      console.error('Login error:', error);
+      let errorMessage = 'Ошибка входа. Проверьте email и пароль.';
+      
+      if (error.response) {
+        // Обрабатываем различные форматы ошибок от сервера
+        if (error.response.data?.error) {
+          errorMessage = error.response.data.error;
+        } else if (error.response.data?.detail) {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data?.non_field_errors) {
+          errorMessage = error.response.data.non_field_errors[0];
+        } else if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       return { 
         success: false, 
         error: errorMessage 
@@ -89,12 +112,25 @@ export const useAuthViewModel = () => {
     setUser(null);
   };
 
+  /**
+   * Обновление данных пользователя из localStorage
+   */
+  const refreshUser = () => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser && authService.isAuthenticated()) {
+      setUser(currentUser);
+    } else {
+      setUser(null);
+    }
+  };
+
   return {
     user,
     loading,
     login,
     register,
     logout,
+    refreshUser,
     isAuthenticated: !!user,
   };
 };

@@ -22,6 +22,7 @@ import {
   Menu as MenuIcon,
   Psychology,
   AdminPanelSettings,
+  Schedule,
 } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -94,6 +95,8 @@ const Header = ({ user, onLogout }) => {
           >
             Каталог
           </Button>
+          {user && (
+            <>
           <Button 
             color="inherit" 
             component={Link}
@@ -102,6 +105,24 @@ const Header = ({ user, onLogout }) => {
           >
             Рекомендации
           </Button>
+              <Button 
+                color="inherit" 
+                component={Link}
+                to="/watchlist"
+                startIcon={<Schedule />}
+              >
+                Мои списки
+              </Button>
+              <Button 
+                color="inherit" 
+                component={Link}
+                to="/profile"
+                startIcon={<Person />}
+              >
+                Профиль
+              </Button>
+            </>
+          )}
           
           {/* Админ-панель для админов */}
           {isAdmin && (
@@ -197,6 +218,10 @@ const Header = ({ user, onLogout }) => {
                   <MenuItem component={Link} to="/recommendations" onClick={handleClose}>
                     <Psychology sx={{ mr: 1 }} />
                     Рекомендации
+                  </MenuItem>
+                  <MenuItem component={Link} to="/watchlist" onClick={handleClose}>
+                    <Schedule sx={{ mr: 1 }} />
+                    Мои списки
                   </MenuItem>
                   {isAdmin && (
                     <MenuItem onClick={handleAdmin}>

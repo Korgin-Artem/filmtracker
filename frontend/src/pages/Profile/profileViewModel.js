@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { authService } from '../../shared/api/authService';
-import { movieService } from '../../shared/api/movieService';
 import { reviewService } from '../../shared/api/reviewService';
 
 export const useProfileViewModel = () => {
@@ -24,8 +23,24 @@ export const useProfileViewModel = () => {
       setUserStats(stats);
 
       // Загружаем отзывы пользователя
+      // Получаем профиль пользователя для получения ID
+      try {
+        const userProfile = await authService.getUserProfile();
+        if (userProfile && userProfile.id) {
+          // Используем фильтрацию по user через API
+          const reviewsData = await reviewService.getReviews(null, null, userProfile.id);
+          setUserReviews(reviewsData.results || []);
+        } else {
+          // Fallback: загружаем все отзывы
+          const reviewsData = await reviewService.getReviews();
+          setUserReviews(reviewsData.results || []);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        // Fallback: загружаем все отзывы
       const reviewsData = await reviewService.getReviews();
       setUserReviews(reviewsData.results || []);
+      }
 
     } catch (error) {
       console.error('Error loading profile data:', error);

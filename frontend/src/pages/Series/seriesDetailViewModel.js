@@ -26,9 +26,28 @@ export const useSeriesDetailViewModel = (seriesId) => {
       setSeries(seriesData);
 
       // Загружаем отзывы
-      const reviewsData = await reviewService.getReviews();
-      const seriesReviews = reviewsData.results?.filter(review => review.series === seriesId) || [];
-      setReviews(seriesReviews);
+      const reviewsData = await reviewService.getReviews(null, seriesId);
+      setReviews(reviewsData.results || []);
+
+      // Загружаем текущий рейтинг пользователя
+      try {
+        const userRating = await reviewService.getUserRating(null, seriesId);
+        if (userRating) {
+          setUserRating(userRating.rating);
+        }
+      } catch (error) {
+        console.error('Error loading user rating:', error);
+      }
+
+      // Загружаем текущий статус просмотра
+      try {
+        const userStatus = await reviewService.getUserWatchStatus(null, seriesId);
+        if (userStatus) {
+          setUserWatchStatus(userStatus.status);
+        }
+      } catch (error) {
+        console.error('Error loading user watch status:', error);
+      }
 
     } catch (error) {
       console.error('Error loading series:', error);

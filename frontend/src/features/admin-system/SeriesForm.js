@@ -18,6 +18,8 @@ import {
   Checkbox,
 } from '@mui/material';
 import { seriesService } from '../../entities/series/seriesService';
+import { movieService } from '../../shared/api/movieService';
+import { Add as AddIcon } from '@mui/icons-material';
 
 const SeriesForm = ({ open, onClose, series = null, onSave }) => {
   const [formData, setFormData] = useState({
@@ -31,6 +33,9 @@ const SeriesForm = ({ open, onClose, series = null, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [availableGenres, setAvailableGenres] = useState([]);
+  const [newGenreName, setNewGenreName] = useState('');
+  const [showNewGenreInput, setShowNewGenreInput] = useState(false);
+  const [creatingGenre, setCreatingGenre] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -60,6 +65,13 @@ const SeriesForm = ({ open, onClose, series = null, onSave }) => {
 
   const loadGenres = async () => {
     try {
+      // Загружаем жанры из API
+      const genresData = await movieService.getGenres();
+      setAvailableGenres(genresData.results || genresData || []);
+    } catch (error) {
+      console.error('Error loading genres:', error);
+      // Fallback: загружаем из сериалов
+    try {
       const seriesData = await seriesService.getSeries({ page_size: 100 });
       const genres = [];
       seriesData.results?.forEach(series => {
@@ -70,27 +82,89 @@ const SeriesForm = ({ open, onClose, series = null, onSave }) => {
         });
       });
       setAvailableGenres(genres);
+      } catch (fallbackError) {
+        console.error('Error loading genres from series:', fallbackError);
+      }
+    }
+  };
+
+  const handleCreateGenre = async () => {
+    if (!newGenreName.trim()) {
+      setError('Введите название жанра');
+      return;
+    }
+
+    setCreatingGenre(true);
+    try {
+      const newGenre = await movieService.createGenre({ name: newGenreName.trim() });
+      setAvailableGenres(prev => [...prev, newGenre]);
+      setFormData(prev => ({
+        ...prev,
+        genres: [...prev.genres, newGenre.id]
+      }));
+      setNewGenreName('');
+      setShowNewGenreInput(false);
     } catch (error) {
-      console.error('Error loading genres:', error);
+      console.error('Error creating genre:', error);
+      const errorMessage = error.response?.data?.name?.[0] || 
+                          error.response?.data?.error || 
+                          'Ошибка создания жанра';
+      setError(errorMessage);
+    } finally {
+      setCreatingGenre(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Валидация
+    if (!formData.title.trim()) {
+      setError('Введите название сериала');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
+      // Подготавливаем данные для отправки
+      const submitData = {
+        title: formData.title.trim(),
+        description: formData.description?.trim() || '',
+        release_year: formData.release_year,
+        seasons: formData.seasons,
+        is_ongoing: formData.is_ongoing,
+        genres: formData.genres || [], // Будет преобразовано в genres_ids в сервисе
+      };
+
       if (series) {
-        await seriesService.updateSeries(series.id, formData);
+        await seriesService.updateSeries(series.id, submitData);
       } else {
-        await seriesService.createSeries(formData);
+        await seriesService.createSeries(submitData);
       }
       onSave();
       onClose();
     } catch (error) {
       console.error('Error saving series:', error);
-      setError('Ошибка сохранения сериала');
+      let errorMessage = 'Ошибка сохранения сериала';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.title) {
+          errorMessage = Array.isArray(errorData.title) ? errorData.title[0] : errorData.title;
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.non_field_errors) {
+          errorMessage = Array.isArray(errorData.non_field_errors) ? errorData.non_field_errors[0] : errorData.non_field_errors;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -203,8 +277,53 @@ const SeriesForm = ({ open, onClose, series = null, onSave }) => {
                       {genre.name}
                     </MenuItem>
                   ))}
+                  <MenuItem 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowNewGenreInput(true);
+                    }}
+                    sx={{ borderTop: 1, borderColor: 'divider', mt: 1 }}
+                  >
+                    <AddIcon sx={{ mr: 1 }} />
+                    Добавить новый жанр
+                  </MenuItem>
                 </Select>
               </FormControl>
+              
+              {showNewGenreInput && (
+                <Box sx={{ mt: 2, display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Название нового жанра"
+                    value={newGenreName}
+                    onChange={(e) => setNewGenreName(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreateGenre();
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleCreateGenre}
+                    disabled={creatingGenre || !newGenreName.trim()}
+                    size="small"
+                  >
+                    {creatingGenre ? 'Создание...' : 'Создать'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    onClick={() => {
+                      setShowNewGenreInput(false);
+                      setNewGenreName('');
+                    }}
+                    size="small"
+                  >
+                    Отмена
+                  </Button>
+                </Box>
+              )}
             </Grid>
           </Grid>
         </DialogContent>

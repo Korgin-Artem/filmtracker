@@ -24,6 +24,7 @@ urlpatterns = [
     
     # Статусы просмотра
     path('watch-status/', views.WatchStatusListCreateView.as_view(), name='watch-status-list'),
+    path('watch-status/<uuid:pk>/', views.WatchStatusDetailView.as_view(), name='watch-status-detail'),
     
     # Пользователь
     path('user/profile/', views.UserProfileView.as_view(), name='user-profile'),
@@ -31,4 +32,7 @@ urlpatterns = [
     
     # Рекомендации
     path('recommendations/', views.RecommendationsView.as_view(), name='recommendations'),
+    
+    # Жанры
+    path('genres/', views.GenreListCreateView.as_view(), name='genre-list'),
 ]
