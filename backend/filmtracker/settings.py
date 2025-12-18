@@ -8,7 +8,7 @@ SECRET_KEY = 'django-insecure-film-tracker-2025-secret-key-change-in-production'
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'backend']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -119,6 +119,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+
 
 # JWT settings
 SIMPLE_JWT = {

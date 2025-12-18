@@ -1,45 +1,98 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Slider,
-  Chip,
   Accordion,
   AccordionSummary,
   AccordionDetails,
   Grid,
+  Button,
+  Chip, // Добавлен импорт Chip
 } from '@mui/material';
 import {
   ExpandMore,
   FilterList,
+  Clear,
 } from '@mui/icons-material';
-import GenreFilter from '../components/GenreFilter';
 
 const AdvancedFilters = ({ 
   filters, 
   onFilterChange, 
-  availableGenres = [],
   open = false,
   onToggle 
 }) => {
   const currentYear = new Date().getFullYear();
+  const [localFilters, setLocalFilters] = useState(filters);
+  const [sliderValue, setSliderValue] = useState([
+    parseInt(filters.release_year_min) || 1900,
+    parseInt(filters.release_year_max) || currentYear
+  ]);
 
-  const handleSliderChange = (field) => (event, newValue) => {
-    onFilterChange({ 
-      ...filters, 
-      [field]: newValue 
-    });
+  // Синхронизируем локальные фильтры с внешними
+  useEffect(() => {
+    setLocalFilters(filters);
+    setSliderValue([
+      parseInt(filters.release_year_min) || 1900,
+      parseInt(filters.release_year_max) || currentYear
+    ]);
+  }, [filters, currentYear]);
+
+  const handleSliderChange = (event, newValue) => {
+    setSliderValue(newValue);
   };
 
-  const handleInputChange = (field) => (event) => {
-    onFilterChange({ 
-      ...filters, 
-      [field]: event.target.value 
+  const handleSliderChangeCommitted = (event, newValue) => {
+    setLocalFilters(prev => ({
+      ...prev,
+      release_year_min: newValue[0] === 1900 ? '' : newValue[0],
+      release_year_max: newValue[1] === currentYear ? '' : newValue[1]
+    }));
+  };
+
+  const handleSelectChange = (field) => (event) => {
+    const value = event.target.value;
+    setLocalFilters(prev => ({
+      ...prev,
+      [field]: value === '-created_at' ? '' : value
+    }));
+  };
+
+  const applyFilters = () => {
+    onFilterChange(localFilters);
+  };
+
+  const resetFilters = () => {
+    const resetFilters = {
+      ordering: '',
+      release_year_min: '',
+      release_year_max: '',
+    };
+    setLocalFilters(resetFilters);
+    setSliderValue([1900, currentYear]);
+    onFilterChange(resetFilters);
+  };
+
+  // Проверяем, есть ли отличия между текущими и начальными фильтрами
+  const hasFilterChanges = () => {
+    const initialFilters = {
+      ordering: '',
+      release_year_min: '',
+      release_year_max: '',
+    };
+    
+    return Object.keys(initialFilters).some(key => {
+      const localValue = localFilters[key];
+      const initialValue = initialFilters[key];
+      
+      if (key === 'ordering') {
+        return localValue !== initialValue && localValue !== '-created_at';
+      }
+      return localValue !== initialValue;
     });
   };
 
@@ -52,7 +105,15 @@ const AdvancedFilters = ({
       <AccordionSummary expandIcon={<ExpandMore />}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <FilterList />
-          <Typography variant="h6">Расширенные фильтры</Typography>
+          <Typography variant="h6">Фильтры</Typography>
+          {hasFilterChanges() && (
+            <Chip 
+              label="Фильтры активны" 
+              size="small" 
+              color="primary"
+              sx={{ ml: 1 }}
+            />
+          )}
         </Box>
       </AccordionSummary>
       
@@ -63,9 +124,9 @@ const AdvancedFilters = ({
             <FormControl fullWidth>
               <InputLabel>Сортировка</InputLabel>
               <Select
-                value={filters.ordering || '-created_at'}
+                value={localFilters.ordering || '-created_at'}
                 label="Сортировка"
-                onChange={handleInputChange('ordering')}
+                onChange={handleSelectChange('ordering')}
               >
                 <MenuItem value="-created_at">Сначала новые</MenuItem>
                 <MenuItem value="created_at">Сначала старые</MenuItem>
@@ -79,113 +140,72 @@ const AdvancedFilters = ({
             </FormControl>
           </Grid>
 
-          {/* Жанры */}
-          <Grid item xs={12} md={6}>
-            <GenreFilter
-              selectedGenres={filters.genres ? [filters.genres] : []}
-              onGenreChange={(value) => onFilterChange({ 
-                ...filters, 
-                genres: value[0] || '' 
-              })}
-              availableGenres={availableGenres}
-            />
-          </Grid>
-
           {/* Год выпуска - слайдер */}
-          <Grid item xs={12}>
+          <Grid item xs={12} md={6}>
             <Typography gutterBottom>
-              Год выпуска: {filters.release_year_min || 1900} - {filters.release_year_max || currentYear}
+              Год выпуска: {sliderValue[0]} - {sliderValue[1]}
             </Typography>
             <Slider
-              value={[
-                parseInt(filters.release_year_min) || 1900, 
-                parseInt(filters.release_year_max) || currentYear
-              ]}
-              onChange={handleSliderChange('release_year')}
+              value={sliderValue}
+              onChange={handleSliderChange}
+              onChangeCommitted={handleSliderChangeCommitted}
               min={1900}
               max={currentYear}
               valueLabelDisplay="auto"
               sx={{ mt: 2 }}
             />
           </Grid>
-
-          {/* Продолжительность (для фильмов) */}
-          <Grid item xs={12} md={6}>
-            <Typography gutterBottom>
-              Продолжительность (мин)
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-              <TextField
-                type="number"
-                placeholder="От"
-                value={filters.duration_min || ''}
-                onChange={handleInputChange('duration_min')}
-                InputProps={{ inputProps: { min: 0, max: 400 } }}
-              />
-              <Typography>-</Typography>
-              <TextField
-                type="number"
-                placeholder="До"
-                value={filters.duration_max || ''}
-                onChange={handleInputChange('duration_max')}
-                InputProps={{ inputProps: { min: 0, max: 400 } }}
-              />
-            </Box>
-          </Grid>
-
-          {/* Статус (для сериалов) */}
-          <Grid item xs={12} md={6}>
-            <FormControl fullWidth>
-              <InputLabel>Статус сериала</InputLabel>
-              <Select
-                value={filters.is_ongoing || ''}
-                label="Статус сериала"
-                onChange={handleInputChange('is_ongoing')}
-              >
-                <MenuItem value="">Все</MenuItem>
-                <MenuItem value="true">Онгоинг</MenuItem>
-                <MenuItem value="false">Завершен</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
         </Grid>
 
-        {/* Активные фильтры */}
-        {(filters.genres || filters.release_year_min || filters.release_year_max || filters.ordering !== '-created_at') && (
-          <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
+        {/* Кнопки действий */}
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Button
+            startIcon={<Clear />}
+            onClick={resetFilters}
+            variant="outlined"
+            color="error"
+            size="small"
+          >
+            Сбросить всё
+          </Button>
+          
+          <Button
+            onClick={applyFilters}
+            variant="contained"
+            color="primary"
+            size="small"
+            disabled={!hasFilterChanges()}
+          >
+            Применить фильтры
+          </Button>
+        </Box>
+
+        {/* Информация о активных фильтрах */}
+        {hasFilterChanges() && (
+          <Box sx={{ mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
             <Typography variant="subtitle2" gutterBottom>
-              Активные фильтры:
+              Выбраны:
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {filters.genres && (
-                <Chip 
-                  label={`Жанр: ${filters.genres}`}
-                  onDelete={() => onFilterChange({ ...filters, genres: '' })}
-                  size="small"
-                />
+            <Typography variant="body2" color="text.secondary">
+              {localFilters.ordering && localFilters.ordering !== '-created_at' && (
+                <Box component="span" sx={{ mr: 2 }}>
+                  Сортировка: {
+                    localFilters.ordering === 'created_at' ? 'старые → новые' :
+                    localFilters.ordering === '-release_year' ? 'новые по году' :
+                    localFilters.ordering === 'release_year' ? 'старые по году' :
+                    localFilters.ordering === 'title' ? 'А-Я' :
+                    localFilters.ordering === '-title' ? 'Я-А' :
+                    localFilters.ordering === '-rating' ? 'высокий рейтинг' :
+                    localFilters.ordering === 'rating' ? 'низкий рейтинг' : ''
+                  }
+                </Box>
               )}
-              {filters.release_year_min && (
-                <Chip 
-                  label={`Год от: ${filters.release_year_min}`}
-                  onDelete={() => onFilterChange({ ...filters, release_year_min: '' })}
-                  size="small"
-                />
+              {(localFilters.release_year_min || localFilters.release_year_max) && (
+                <Box component="span">
+                  Год: {localFilters.release_year_min || '1900'} - {localFilters.release_year_max || currentYear}
+                </Box>
               )}
-              {filters.release_year_max && (
-                <Chip 
-                  label={`Год до: ${filters.release_year_max}`}
-                  onDelete={() => onFilterChange({ ...filters, release_year_max: '' })}
-                  size="small"
-                />
-              )}
-              {filters.ordering && filters.ordering !== '-created_at' && (
-                <Chip 
-                  label={`Сортировка: ${filters.ordering}`}
-                  onDelete={() => onFilterChange({ ...filters, ordering: '-created_at' })}
-                  size="small"
-                />
-              )}
-            </Box>
+            </Typography>
           </Box>
         )}
       </AccordionDetails>

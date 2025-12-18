@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  backend:
+    image: professorartem/reader-diary-backend:latest
+    container_name: reader-diary-backend
+    ports:
+      - "5000:5000"
+    networks:
+      - app-network
+
+  frontend:
+    image: professorartem/reader-diary-frontend:latest
+    container_name: reader-diary-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

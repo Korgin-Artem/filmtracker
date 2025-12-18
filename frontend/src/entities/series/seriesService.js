@@ -4,7 +4,7 @@ export const seriesService = {
   /**
    * Получить список сериалов с пагинацией и фильтрацией
    */
-  async getSeries(params = {}) {
+  async getAllSeries(params = {}) {
     const response = await apiClient.get('/series/', { params });
     return response.data;
   },
